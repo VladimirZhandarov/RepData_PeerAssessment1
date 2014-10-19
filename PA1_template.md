@@ -8,7 +8,8 @@ Prerequisites required to run this analysis:
 
 We must assume that the user has set the proper working directory, so we begin by checking and loading the dependencies. 
 
-```{r echo=TRUE} 
+
+```r
   require("lattice")
   require("plyr")
   library(plyr)
@@ -19,7 +20,8 @@ We must assume that the user has set the proper working directory, so we begin b
 
 First we check if the raw data has been downloaded an unzipped. If not, we do so. 
 
-```{r echo=TRUE}
+
+```r
   if (!file.exists("activity.zip")) {
     download.file("http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", 
       destfile="activity.zip", method="curl")
@@ -31,18 +33,42 @@ First we check if the raw data has been downloaded an unzipped. If not, we do so
 ```
 
 The data is then read in to a data.frame. 
-```{r echo=TRUE}
+
+```r
   df <- read.csv("activity.csv", stringsAsFactors=FALSE)
   summary(df)
+```
+
+```
+##      steps            date              interval     
+##  Min.   :  0.00   Length:17568       Min.   :   0.0  
+##  1st Qu.:  0.00   Class :character   1st Qu.: 588.8  
+##  Median :  0.00   Mode  :character   Median :1177.5  
+##  Mean   : 37.38                      Mean   :1177.5  
+##  3rd Qu.: 12.00                      3rd Qu.:1766.2  
+##  Max.   :806.00                      Max.   :2355.0  
+##  NA's   :2304
 ```
 
 ### 2. Clean the data if necessary
 
 We coerce the date column into the standard Date format. 
 
-```{r echo=TRUE}
+
+```r
   df$date <- as.Date(df$date)
   summary(df)
+```
+
+```
+##      steps             date               interval     
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
+##  NA's   :2304
 ```
 
 ## What is mean total number of steps taken per day?
@@ -51,25 +77,40 @@ We coerce the date column into the standard Date format.
 
 We begin by creating new data frame containing the sum of steps for each day. 
 
-```{r echo=TRUE}
+
+```r
   tdf <- ddply(df, ~ date, summarise, totalsteps=sum(steps, na.rm=TRUE))
   summary(tdf)
 ```
 
+```
+##       date              totalsteps   
+##  Min.   :2012-10-01   Min.   :    0  
+##  1st Qu.:2012-10-16   1st Qu.: 6778  
+##  Median :2012-10-31   Median :10395  
+##  Mean   :2012-10-31   Mean   : 9354  
+##  3rd Qu.:2012-11-15   3rd Qu.:12811  
+##  Max.   :2012-11-30   Max.   :21194
+```
+
 Then we simply plot a histogram of the total steps. We use breaks=10 for clarity. 
 
-```{r echo=TRUE}
+
+```r
   hist(tdf$totalsteps, breaks=10, main="Histogram of total steps", xlab="Total steps per day", ylab="Frequency")
 ```
+
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png) 
 
 ### 2. Calculate and report the mean and median
 
 Using the data frame we created above this is very straightforward. 
-```{r echo=TRUE}
+
+```r
   meanPerDay <- mean(tdf$totalsteps)
   medianPerDay <- median(tdf$totalsteps)
 ```
-The mean of number of steps is **`r meanPerDay`** and mediane is **`r medianPerDay`.**  
+The mean of number of steps is **9354.2295082** and mediane is **10395.**  
 
 ## What is the average daily activity pattern?
 
@@ -77,27 +118,42 @@ The mean of number of steps is **`r meanPerDay`** and mediane is **`r medianPerD
 
 To plot this graph, we must summarise the mean steps accross each interval. This is a simple one-liner with plyr. 
 
-```{r echo=TRUE}
+
+```r
   idf <- ddply(df, ~ interval, summarise, meansteps=mean(steps, na.rm=TRUE))
   summary(idf)
 ```
 
+```
+##     interval        meansteps      
+##  Min.   :   0.0   Min.   :  0.000  
+##  1st Qu.: 588.8   1st Qu.:  2.486  
+##  Median :1177.5   Median : 34.113  
+##  Mean   :1177.5   Mean   : 37.383  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835  
+##  Max.   :2355.0   Max.   :206.170
+```
+
 Creating the plot is then straightforward. 
-```{r echo=TRUE}
+
+```r
   plot(idf$interval, idf$meansteps, type="l", main="", xlab="5-minute intervals", ylab="Average number of steps")
 ```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9-1.png) 
 
 ### 2. Which 5-minute interval has the highest average number of steps? 
 
 We simply find the maximum value in the meansteps column and print the interval. 
 
-```{r echo=TRUE}
+
+```r
   maxMeanStepsIndex <- idf[which.max(idf$meansteps), ]
   maxMeanStepsInterval <- maxMeanStepsIndex$interval
   maxMeanStepsMeansteps <- maxMeanStepsIndex$meansteps
 ```
 
-The 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps is **`r maxMeanStepsInterval`** and it contain **`r maxMeanStepsMeansteps`** steps. 
+The 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps is **835** and it contain **206.1698113** steps. 
 
 ## Imputing missing values
 
@@ -105,17 +161,19 @@ The 5-minute interval, on average across all the days in the dataset, contains t
 
 We use the fact that TRUE is coerced to 1 as an integer and use the sum() function. 
 
-```{r echo=TRUE}
+
+```r
   missingValues <- sum(is.na(df$steps))
 ```
 
-Number of missing values is **`r missingValues`**
+Number of missing values is **2304**
 
 ### 2. Strategy to fill in missing values
 
 The strategy we use to impute missing values is to insert the mean for each 5 minute interval. To accomplish this, we must first calculate that mean for each interval over all days.  We then use plyr to apply that mean to each missing value. 
 
-```{r echo=TRUE}
+
+```r
   impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm=TRUE))
   dfimputed <- ddply(df, ~ interval, transform, steps = impute.mean(steps))
   
@@ -127,8 +185,20 @@ The strategy we use to impute missing values is to insert the mean for each 5 mi
 
 The dfimputed data set created above has the missing data filled in. 
 
-```{r echo=TRUE}
+
+```r
   summary(dfimputed)
+```
+
+```
+##      steps             date               interval     
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
+##  NA's   :2304
 ```
 
 ### 4. Create a histogram and calculate the mean and median of the imputed data
@@ -137,23 +207,38 @@ We repeat the steps to plot a histogram and calculate mean and median on the imp
 
 First create a new data frame with the total steps for each day. 
 
-```{r echo=TRUE}
+
+```r
   tdfimputed <- ddply(dfimputed, ~ date, summarise, totalsteps=sum(steps, na.rm=TRUE))
   summary(tdf)
-```  
+```
+
+```
+##       date              totalsteps   
+##  Min.   :2012-10-01   Min.   :    0  
+##  1st Qu.:2012-10-16   1st Qu.: 6778  
+##  Median :2012-10-31   Median :10395  
+##  Mean   :2012-10-31   Mean   : 9354  
+##  3rd Qu.:2012-11-15   3rd Qu.:12811  
+##  Max.   :2012-11-30   Max.   :21194
+```
 
 Plot a histogram for the imputed totals
 
-```{r echo=TRUE}
+
+```r
   hist(tdfimputed$totalsteps, breaks=10, main="Total steps of imputed data", xlab="Total steps", ylab="Frequency")
 ```
 
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-1.png) 
+
 Calculate the mean and median. 
-```{r echo=TRUE}
+
+```r
   meanPerDay2 <- mean(tdfimputed$totalsteps)  
   medianPerDay2 <- median(tdfimputed$totalsteps)
 ```
-The mean of number of steps is **`r meanPerDay2`** and mediane is **`r medianPerDay2`.**  
+The mean of number of steps is **9354.2295082** and mediane is **10395.**  
 
 #### 4.1 Do the values differ from those above? 
 
@@ -162,11 +247,27 @@ We do not expect the mean and median to differ from those above. This is because
 #### 4.2 What effect does imputing have?
 
 We do not expect our imputing method to have any effect. We create a summary and plot to verify this. 
-```{r echo=TRUE}
+
+```r
   idfimputed <- ddply(dfimputed, ~ interval, summarise, meansteps=mean(steps, na.rm=TRUE))
   summary(idfimputed)
+```
+
+```
+##     interval        meansteps      
+##  Min.   :   0.0   Min.   :  0.000  
+##  1st Qu.: 588.8   1st Qu.:  2.486  
+##  Median :1177.5   Median : 34.113  
+##  Mean   :1177.5   Mean   : 37.383  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835  
+##  Max.   :2355.0   Max.   :206.170
+```
+
+```r
   plot(idfimputed$interval, idfimputed$meansteps, type="l", main="Imputed Data", xlab="Interval", ylab="Average Steps")
 ```
+
+![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-1.png) 
 
 We do not detect any difference in the imputed data. 
 
@@ -175,11 +276,29 @@ We do not detect any difference in the imputed data.
 ### 1. Create a new factor variable for weekends and weekdays
 
 First create a boolean factor, them map the boolean values to "weekend" or "weekday". 
-```{r echo=TRUE}
+
+```r
   Sys.setlocale("LC_TIME", "English")
+```
+
+```
+## [1] "English_United States.1252"
+```
+
+```r
   df$daytype <- weekdays(df$date) %in% c("Saturday", "Sunday")
   df$daytype <- mapvalues(df$daytype, from=c(TRUE, FALSE), to=c("weekend", "weekday"))
   head(df)
+```
+
+```
+##   steps       date interval daytype
+## 1    NA 2012-10-01        0 weekday
+## 2    NA 2012-10-01        5 weekday
+## 3    NA 2012-10-01       10 weekday
+## 4    NA 2012-10-01       15 weekday
+## 5    NA 2012-10-01       20 weekday
+## 6    NA 2012-10-01       25 weekday
 ```
 
 ### 2. Make a plot for average steps per interval for weekends and weekdays
@@ -188,7 +307,8 @@ To create this plot, we must first calculate the mean steps for each time interv
 
 We split the data into separate frames for weekends and weekdays and then assign the mean value to each interval using plyr. 
 
-```{r echo=TRUE}
+
+```r
   dfweekdays <- df[df$daytype == "weekday", ]
   idfweekdays <- ddply(dfweekdays, ~ interval, summarise, meansteps=mean(steps, na.rm=TRUE))
   idfweekdays$daytype <- "weekday"
@@ -200,17 +320,31 @@ We split the data into separate frames for weekends and weekdays and then assign
 
 We then bind the data frames back together. 
 
-```{r echo=TRUE}
+
+```r
   #bind the two data frames back together
   rdf <- rbind(idfweekends, idfweekdays)
   summary(rdf)
 ```
 
+```
+##     interval        meansteps         daytype         
+##  Min.   :   0.0   Min.   :  0.000   Length:576        
+##  1st Qu.: 588.8   1st Qu.:  1.854   Class :character  
+##  Median :1177.5   Median : 26.295   Mode  :character  
+##  Mean   :1177.5   Mean   : 39.208                     
+##  3rd Qu.:1766.2   3rd Qu.: 62.321                     
+##  Max.   :2355.0   Max.   :234.103
+```
+
 We are now ready to plot. Creating multi-panel plots is simple using the lattice system, so we use the xyplot() function. 
 
-```{r echo=TRUE}
+
+```r
   xyplot(meansteps ~ interval | daytype, data=rdf, type="l", main="", xlab="Interval", ylab="Average Steps")
 ```
+
+![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-1.png) 
 
 We see that there is in fact a difference in behaviour between weekdays and weekends.
 
